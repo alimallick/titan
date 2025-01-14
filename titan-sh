@@ -1,10 +1,10 @@
-#!/bin/bash
-# Check if the script is run as root user
+#!/bin/bash 
+# Periksa apakah skrip dijalankan sebagai pengguna root 
 if [ "$(id -u)" != "0" ]; then
-    echo "This script must be run with root user permissions."
-    echo "Please try using the 'Use sudo -i' command to switch to the root user, then run this script again."
+    echo "Skrip ini harus dijalankan dengan izin pengguna root."
+    echo "Silakan coba gunakan perintah 'Gunakan sudo -i' untuk beralih ke pengguna root, lalu jalankan skrip ini lagi."
     exit 1
-be
+fi
 
 echo "=======================Titan Node=======================" 
 
@@ -25,66 +25,66 @@ echo -e "\e[0m"
 echo -e ""
 echo -e ""
 
-read -p "Enter your identity code: " id
+read -p "Masukkan kode identitas anda: " id
 
-# Let the user enter the number of containers to be created.
-read -p "Please enter the number of nodes you want to create. One IP is limited to a maximum of 5 nodes: " container_count
+# Biarkan pengguna memasukkan jumlah container yang ingin dibuat 
+read -p "Silakan masukkan jumlah node yang ingin dibuat. Satu IP dibatasi maksimal 5 node: " container_count
 
-# Let the user enter the hard disk size limit of each node (in GB)
-read -p "Please enter the hard disk size limit of each node (in GB, for example: 1 represents 1GB, 2 represents 2GB) : " disk_size_gb
+# Biarkan pengguna memasukkan batas ukuran hard disk setiap node (dalam GB) 
+read -p "Silakan masukkan batas ukuran hard disk setiap node (dalam GB, misalnya: 1 mewakili 1GB, 2 mewakili 2GB) : " disk_size_gb 
 
-# Ask for the user data volume storage directory, and set the default value.
-read -p "Please enter the storage directory for the volume data [default: /mnt/docker_volumes]: " volume_dir
+# Tanyakan direktori penyimpanan volume data pengguna, dan tetapkan nilai default 
+read -p "Silahkan masukkan direktori penyimpanan volume data [default: /mnt/docker_volumes]: " volume_dir
 volume_dir=${volume_dir:-/mnt/docker_volumes}
 
 apt update
 
-# Check if Docker is installed Install
+# Periksa apakah Docker telah diinstal Instal 
 if ! command -v docker &> /dev/null
 then
-    echo "Docker not detected, installing. .."
+    echo "Docker tidak terdeteksi, sedang menginstal. .."
     apt-get install ca-certificates curl gnupg lsb-release
     
-    # Install the latest version of Docker
+    # Instal versi terbaru Docker 
     apt-get install docker.io -y
 else
-    echo "Docker has been installed."
-be
+    echo "Docker telah diinstal."
+fi
 
-# Pull the Docker image
+# Tarik gambar Docker 
 docker pull nezha123/titan-edge
 
-# Create a directory to store image files
+# Buat direktori penyimpanan file gambar 
 mkdir -p $volume_dir
 
-# Create a user-specified number of containers
+# Buat jumlah container yang ditentukan pengguna 
 for i in $(seq 1 $container_count)
 do
     disk_size_mb=$((disk_size_gb * 1024))
     
-    # Create an image file system with a specific size for each container.
+    # Buat sistem file gambar dengan ukuran tertentu untuk setiap kontainer 
     volume_path="$volume_dir/volume_$i.img"
     sudo dd if=/dev/zero of=$volume_path bs=1M count=$disk_size_mb
     sudo mkfs.ext4 $volume_path
 
-    # Create directories and mount filesystems
+    # Buat direktori dan pasang sistem berkas 
     mount_point="/mnt/my_volume_$i"
     mkdir -p $mount_point
     sudo mount -o loop $volume_path $mount_point
 
-    # Will be mounted Add information to /etc/fstab
+    # Akan dipasang Tambahkan informasi ke /etc/fstab 
     echo "$volume_path $mount_point ext4 loop,defaults 0 0" | sudo tee -a /etc/fstab
 
-    # Run the container and set the restart policy to always
+    # Jalankan container dan setel kebijakan mulai ulang ke selalu 
     container_id=$(docker run -d --restart always -v $mount_point:/root/.titanedge/storage --name "titan$i" nezha123/titan-edge)
 
     echo "node titan$i telah memulai ID containe $container_id"
 
     sleep 30
     
-    # Enter the container and perform binding and other commands
+    # Masuk ke container dan lakukan pengikatan dan perintah lainnya 
     docker exec -it $container_id bash -c "\
         titan-edge bind --hash=$id https://api-test1.container1.titannet.io/api/v2/device/binding"
 done
 
-echo "===============================All nodes are setup and started==================================."
+echo "==============================Semua node sudah diatur dan dimulai===================================."
